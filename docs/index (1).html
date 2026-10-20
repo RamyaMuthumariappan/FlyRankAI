@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which pages should a content editor open first?</title>
+<meta name="description" content="A client-grouped audit of a refresh-priority ranking built on FlyRank search and content-performance data: what the model gets right, what it only re-reads, and a ranked playbook for human review.">
+<style>
+:root {
+  color-scheme: light;
+  --bg:#fcfcfb; --ink:#16181c; --ink2:#4a4f57; --muted:#6b7079; --rule:#dcdcd7; --soft:#f2f2ee;
+  --accent:#2a78d6; --accent-ink:#1d5aa6; --warn:#fdf3dc; --warn-rule:#e3c26a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --leak:#9a9a95;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --bg:#16171a; --ink:#ecebe7; --ink2:#c3c2b7; --muted:#9b9a92; --rule:#33343a; --soft:#202226;
+    --accent:#3987e5; --accent-ink:#7db3f2; --warn:#2a2518; --warn-rule:#7a6528;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --leak:#77776f;
+  }
+}
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--bg); color:var(--ink);
+  font:18px/1.62 Charter,"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif; }
+a { color:var(--accent-ink); text-underline-offset:3px; }
+a:focus-visible,summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.layout { display:grid; grid-template-columns:minmax(0,1fr); grid-template-areas:"head" "main"; max-width:44rem; margin:0 auto; padding:0 20px 80px; }
+nav.toc { display:none; }
+@media (min-width:1180px) {
+  .layout { max-width:70rem; grid-template-columns:13.5rem minmax(0,42rem); column-gap:4rem;
+    grid-template-areas:"toc head" "toc main"; }
+  nav.toc { grid-area:toc; display:block; position:sticky; top:2rem; align-self:start; margin-top:4.2rem;
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  nav.toc a { display:block; color:var(--muted); text-decoration:none; padding:5px 0 5px 12px; border-left:2px solid var(--rule); }
+  nav.toc a:hover { color:var(--ink); border-left-color:var(--accent); }
+}
+header.title { padding:56px 0 8px; grid-area:head; }
+main { grid-area:main; min-width:0; }
+h1 { font-size:2.15rem; line-height:1.18; margin:0 0 14px; letter-spacing:-.01em; font-weight:700; }
+.byline { font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--muted); }
+.byline strong { color:var(--ink2); font-weight:600; }
+.abstract { border-left:3px solid var(--accent); padding:2px 0 2px 18px; margin:28px 0 8px; color:var(--ink2); }
+.abstract h2 { font:600 15px/1 system-ui,sans-serif; margin:0 0 8px; color:var(--ink); }
+.abstract p { margin:0; font-size:17px; }
+h2 { font-size:1.5rem; line-height:1.25; margin:3.2rem 0 .7rem; scroll-margin-top:1.5rem; }
+h3 { font-size:1.12rem; margin:2rem 0 .4rem; }
+p { margin:0 0 1.05rem; }
+ul,ol { padding-left:1.3rem; margin:0 0 1.1rem; } li { margin-bottom:.45rem; }
+code { font:.84em/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:var(--soft); padding:1px 5px; border-radius:3px; }
+pre { background:var(--soft); padding:14px 16px; border-radius:6px; overflow-x:auto; font:14px/1.5 ui-monospace,Menlo,Consolas,monospace; }
+pre code { background:none; padding:0; }
+.callout { background:var(--warn); border:1px solid var(--warn-rule); border-radius:6px; padding:12px 16px; margin:1.2rem 0; font-size:16.5px; }
+.callout p:last-child { margin:0; }
+figure { margin:1.8rem 0 2rem; }
+figure .chart { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+figure svg { width:100%; min-width:540px; height:auto; display:block; }
+figcaption { font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink2); margin-top:8px; }
+figcaption b { color:var(--ink); }
+.tablewrap { overflow-x:auto; margin:1.1rem 0 1.5rem; }
+table { border-collapse:collapse; width:100%; font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif; }
+th,td { text-align:left; padding:8px 12px 8px 0; border-bottom:1px solid var(--rule); vertical-align:top; }
+th { font-weight:600; color:var(--ink2); border-bottom:2px solid var(--ink2); }
+td.num,th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; padding-right:0; padding-left:14px; }
+details { font:15px/1.5 system-ui,sans-serif; margin-top:6px; } summary { cursor:pointer; color:var(--accent-ink); }
+.rec { counter-reset:rec; list-style:none; padding:0; }
+.rec li { counter-increment:rec; position:relative; padding-left:2.4rem; margin-bottom:1.3rem; }
+.rec li::before { content:counter(rec); position:absolute; left:0; top:.1rem; width:1.7rem; height:1.7rem; border-radius:50%;
+  background:var(--accent); color:#fff; font:600 14px/1.7rem system-ui,sans-serif; text-align:center; }
+.rec b { display:block; }
+.facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr)); gap:14px 18px; margin:26px 0 4px;
+  font:14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--muted); }
+.facts b { display:block; font:600 22px/1.2 Charter,Georgia,serif; color:var(--ink); }
+footer { margin-top:4rem; padding-top:1.4rem; border-top:1px solid var(--rule); font-size:16px; color:var(--ink2); }
+/* chart tokens */
+svg .grid { stroke:var(--rule); stroke-width:1; }
+svg .ref { stroke:var(--muted); stroke-width:1.2; stroke-dasharray:4 4; }
+svg .tick { font:12px system-ui,sans-serif; fill:var(--muted); }
+svg .axis { font:12.5px system-ui,sans-serif; fill:var(--ink2); }
+svg .lab { font:13px system-ui,sans-serif; fill:var(--ink); }
+svg .val { font:600 13px system-ui,sans-serif; fill:var(--ink); }
+svg .muted { fill:var(--muted); }
+svg .line { fill:none; stroke-width:2.4; stroke-linejoin:round; }
+svg .line.dash { stroke-dasharray:6 4; }
+svg .line.s1,svg .dot.s1 { stroke:var(--s1); } svg .line.s2,svg .dot.s2 { stroke:var(--s2); } svg .line.s3,svg .dot.s3 { stroke:var(--s3); }
+svg .dot { stroke-width:2; } svg .dot.s1 { fill:var(--s1); } svg .dot.s2 { fill:var(--s2); } svg .dot.s3 { fill:var(--s3); }
+svg .dot { stroke:var(--bg); } svg .dot.hollow { fill:var(--bg); stroke:var(--s1); }
+svg .whisk { stroke:var(--ink2); stroke-width:1.6; }
+svg .bar { fill:var(--s1); } svg .bar.leak { fill:var(--leak); } svg .bar.quiet { fill:var(--s1); opacity:.45; }
+@media print { nav.toc { display:none; } body { font-size:12pt; } .layout { max-width:none; } a { color:inherit; } }
+</style>
+</head>
+<body>
+<div class="layout">
+<header class="title">
+  <h1>Which pages should a content editor open first? Auditing a refresh-priority ranking on FlyRank search data</h1>
+  <div class="byline"><strong>Ramya Muthumariappan</strong> &middot; FlyRank ML Internship capstone &middot; October 2026 &middot; <a href="https://github.com/RamyaMuthumariappan/FlyRankAI">code and notebooks</a></div>
+  <div class="facts" aria-label="Key facts">
+    <div><b>30,000</b>pages in the modelling snapshot, 32 clients</div>
+    <div><b>78.8M</b>daily rows in the warehouse release behind the data contract</div>
+    <div><b>0.946 &rarr; 0.658</b>out-of-fold AUC before and after removing 4 label columns</div>
+    <div><b>0.423</b>base rate of the proxy label</div>
+  </div>
+  <div class="abstract" id="abstract">
+    <h2>Abstract</h2>
+    <p>We asked which pages a content editor should review first, and how much of a model's apparent skill at ranking them survives an honest audit. We used an anonymized snapshot of 30,000 pages from 32 clients (trailing 90 days), with the 78.8-million-row FlyRank warehouse release used to write and check the data contract on one March 2026 partition. We built a transparent rule baseline and a Random Forest against a rule-defined proxy label, validated by holding out whole clients, then audited leakage with ablations and a deliberately planted leak. Out-of-fold AUC across clients was 0.946 against a 0.42 base rate, but fell to 0.658 once four columns that define the label were removed, and pages flagged by the rule for a click-through gap showed a decline-proxy rate of 0.614 against 0.542 overall. The output is a ranked, reason-coded review queue for human editors: decision-support, not a forecast of what a refresh will do.</p>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <a href="#abstract">Abstract</a><a href="#intro">1. Problem</a><a href="#data">2. Data</a><a href="#method">3. Methodology</a>
+  <a href="#results">4. Results</a><a href="#limits">5. Limitations</a><a href="#recs">6. Recommendations</a>
+  <a href="#repro">7. Reproducibility</a><a href="#credit">8. Acknowledgments</a>
+</nav>
+
+<main>
+<h2 id="intro">1. Introduction and problem statement</h2>
+<p>A content team that manages tens of thousands of pages can only open a few dozen a week. The decision is therefore not &ldquo;is this page declining?&rdquo; but &ldquo;which pages do we open first, and what do we check when we do?&rdquo; A wrong call costs differently in each direction. A page ranked high that needs nothing burns scarce editor time and erodes trust in the list. A page that needs attention but never surfaces keeps losing position quietly, because nobody was told to look.</p>
+<p>That asymmetry makes this a ranking problem, judged at the top of the list. We therefore measure precision@K and AUC rather than overall accuracy, and we always report the base rate beside them.</p>
+<p>The question this paper answers has two parts. First: can a transparent rule and a learned model produce a useful review queue from observable search metrics? Second, and more important: when the model scores well, is it finding something new, or re-reading the rule that defined its label? The second part turned out to matter more than the first.</p>
+
+<h2 id="data">2. Data</h2>
+<h3>Modelling snapshot</h3>
+<p>The model, baseline and playbook use an anonymized starter snapshot: <b>30,000 pages &times; 44 columns, 32 clients</b>, one row per page, with trailing-90-day search and engagement metrics, content metadata and freshness fields. Every row has at least one impression in the 90-day window, and the minimum content age is 90 days. Pages and clients carry pseudonymous hashed identifiers; the snapshot contains no client names, domains, URLs, page titles or search queries.</p>
+<h3>Warehouse release</h3>
+<p>The FlyRank warehouse release (build v20260703, gated) holds <b>78,835,655 daily rows</b> of page-level performance from 27 January 2025 to 30 June 2026, plus a client table of 104 clients and a content table of 519,606 items. We used it for one purpose: to write and verify the data contract on a mid-panel month. The March 2026 partition has 9,841,378 daily rows from 55 clients, which aggregate to 331,437 page-month rows with no duplicate (client, page) pairs. The final month (June 2026) was kept sealed and never touched. <b>No model in this paper was trained on the full warehouse.</b></p>
+<div class="callout"><p><b>Why this distinction matters.</b> The headline model numbers describe the 30,000-page snapshot. The warehouse is where the next, stronger study belongs (Section 5), because it supports a past-to-future label that a single snapshot cannot.</p></div>
+<h3>What we excluded, and why</h3>
+<ul>
+<li><b><code>trend_direction</code>, <code>trend_pct</code>, <code>is_declining_label</code></b> are never features. The decline label is computed from them, so using them would be circular.</li>
+<li><b>Pseudonymous identifiers</b> are used for grouping and splitting only, never as features.</li>
+<li><b>Position zero</b> means &ldquo;no data&rdquo;, not rank zero (1,205 pages, 4.0%). These are routed to a data check rather than scored on position.</li>
+<li><b>The warehouse&rsquo;s sample table</b> covers the sealed final month, so it was not used for any label logic.</li>
+<li><b>Analytics flags</b> can be true, false or null. In the March partition only 4.2% of row-days were confirmed available, so we filter on the flag and never read zeros as &ldquo;no engagement&rdquo;.</li>
+</ul>
+<p>Only aggregates and charts appear on this page. No row-level data, identifiers or queries are published.</p>
+
+<h2 id="method">3. Methodology</h2>
+<h3>Label and assumptions</h3>
+<p>No editor has confirmed which pages needed review, so the target is a <b>proxy</b> defined by a rule. A page is &ldquo;high priority&rdquo; if it is either a <i>page-one decay</i> case (average position 1&ndash;10 and impressions down more than 20% against the prior 30 days) or a <i>stale but visible</i> case (over 60 days since update and over 50 impressions in 30 days). This marks 12,694 of 30,000 pages as high (base rate 0.423). Because the label is a rule over ordinary columns, scores measure agreement with the rule, not with an editor.</p>
+<h3>Baseline</h3>
+<p>The baseline is a readable score with hand-set constants and no fitting. A page is <i>visible</i> at 50 or more impressions in 30 days, <i>stale</i> at 90 or more days since update, and has a <i>CTR gap</i> when its position is within 20 and its CTR is below 0.35%. The score adds a 0.6-weighted CTR-gap term and a 0.4-weighted staleness term, each scaled by log impressions. Each page gets one reason code. Before using either signal we tested it:</p>
+<div class="tablewrap"><table class=""><thead><tr><th>Position tier</th><th class=num>Pages</th><th class=num>Weighted CTR (%)</th></tr></thead><tbody><tr><td>Top 3</td><td class=num>1,116</td><td class=num>0.489</td></tr><tr><td>Page 1</td><td class=num>11,814</td><td class=num>0.350</td></tr><tr><td>Striking distance</td><td class=num>7,304</td><td class=num>0.347</td></tr><tr><td>Pages 3-5</td><td class=num>7,242</td><td class=num>0.155</td></tr><tr><td>Deep</td><td class=num>1,319</td><td class=num>0.041</td></tr></tbody></table></div>
+<p>CTR falls steadily with position in every bucket, so the CTR-gap signal was <b>confirmed</b>. Staleness was <b>mixed</b>: the decline-proxy rate was 0.511 for pages updated within 30 days and 0.611 for 91&ndash;180 days, but the oldest bucket fell back to 0.471 because pages that go truly stale mostly lose their traffic too. The rule therefore uses staleness only when a page is still visible.</p>
+<h3>Features and models</h3>
+<p>The models use 28 features (20 numeric, 8 categorical): search and keyword metadata, 90-day impression, click, session and AI-referral volumes (log-scaled), CTR, engagement, position and freshness fields, and content type. Missing keyword and word-count data get explicit indicator flags instead of zero-fill. We fit a logistic regression first (every coefficient inspectable), then a Random Forest, because the label is an AND/OR combination of thresholds that a linear model cannot represent directly. All seeds are 42.</p>
+<h3>Validation design</h3>
+<p>Splits are <b>grouped by client</b>: whole clients are in training or in test, never both, which approximates scoring a client the model has never seen. We report three views: one 75/25 client split (24 training clients, 8 test clients), random 5-fold as the naive contrast, and client-grouped 5-fold across all 32 clients with out-of-fold scoring. A time-aware split was not possible because the snapshot is a single trailing-90-day export with no dated rows.</p>
+<h3>Leakage checks</h3>
+<ol>
+<li><b>Banned-column guard.</b> A check asserts that none of the three label-derived columns is in the feature set.</li>
+<li><b>Planted-leak test.</b> We deliberately add <code>trend_pct</code> to confirm the harness would catch a real leak.</li>
+<li><b>Ingredient audit.</b> We list which features are direct ingredients of the label, which overlap its window, and which come from an existing decision system (none did).</li>
+<li><b>Ablation.</b> We retrain without the suspect columns and compare.</li>
+<li><b>Permutation importance</b> on a held-out fold, to see what the model actually leans on.</li>
+</ol>
+<p>A small earlier demonstration on the warehouse partition showed the size of the problem: honest accuracy on a toy decline label was 0.711, and adding one label-derived column lifted it to 0.999.</p>
+
+<h2 id="results">4. Results</h2>
+<h3>4.1 Model against baseline, same split</h3>
+<p>On the same eight held-out clients (7,115 pages, base rate 0.364), all three methods reach 1.000 at K = 30 and 50. That is a ceiling effect: any of them can find 30 unambiguous pages. The difference appears deeper in the list.</p>
+<figure>
+<div class="chart" tabindex="0" role="group" aria-label="Chart, scrollable on small screens"><svg viewBox="0 0 640 330" role="img" aria-label="Precision at K for baseline rule, logistic regression and random forest" xmlns="http://www.w3.org/2000/svg"><line class="grid" x1="56" x2="500" y1="278.0" y2="278.0"/><text class="tick" x="48" y="282.0" text-anchor="end">0.2</text><line class="grid" x1="56" x2="500" y1="212.5" y2="212.5"/><text class="tick" x="48" y="216.5" text-anchor="end">0.4</text><line class="grid" x1="56" x2="500" y1="147.0" y2="147.0"/><text class="tick" x="48" y="151.0" text-anchor="end">0.6</text><line class="grid" x1="56" x2="500" y1="81.5" y2="81.5"/><text class="tick" x="48" y="85.5" text-anchor="end">0.8</text><line class="grid" x1="56" x2="500" y1="16.0" y2="16.0"/><text class="tick" x="48" y="20.0" text-anchor="end">1.0</text><text class="tick" x="56.0" y="298" text-anchor="middle">30</text><text class="tick" x="119.4" y="298" text-anchor="middle">50</text><text class="tick" x="182.9" y="298" text-anchor="middle">100</text><text class="tick" x="246.3" y="298" text-anchor="middle">300</text><text class="tick" x="309.7" y="298" text-anchor="middle">500</text><text class="tick" x="373.1" y="298" text-anchor="middle">1,000</text><text class="tick" x="436.6" y="298" text-anchor="middle">2,000</text><text class="tick" x="500.0" y="298" text-anchor="middle">3,000</text><text class="axis" x="278.0" y="322" text-anchor="middle">K = number of top-ranked pages reviewed (8 held-out clients, 7,115 pages)</text><text class="axis" transform="translate(14 147.0) rotate(-90)" text-anchor="middle">precision@K</text><line class="ref" x1="56" x2="500" y1="224.3" y2="224.3"/><text class="lab muted" x="508" y="228.3">base rate 0.364</text><polyline class="line s2" points="56.0,16.0 119.4,22.6 182.9,45.5 246.3,129.6 309.7,163.4 373.1,191.9 436.6,182.4 500.0,187.9"/><circle class="dot s2" cx="56.0" cy="16.0" r="4"><title>Rule baseline: precision@30 = 1.000</title></circle><circle class="dot s2" cx="119.4" cy="22.6" r="4"><title>Rule baseline: precision@50 = 0.980</title></circle><circle class="dot s2" cx="182.9" cy="45.5" r="4"><title>Rule baseline: precision@100 = 0.910</title></circle><circle class="dot s2" cx="246.3" cy="129.6" r="4"><title>Rule baseline: precision@300 = 0.653</title></circle><circle class="dot s2" cx="309.7" cy="163.4" r="4"><title>Rule baseline: precision@500 = 0.550</title></circle><circle class="dot s2" cx="373.1" cy="191.9" r="4"><title>Rule baseline: precision@1,000 = 0.463</title></circle><circle class="dot s2" cx="436.6" cy="182.4" r="4"><title>Rule baseline: precision@2,000 = 0.492</title></circle><circle class="dot s2" cx="500.0" cy="187.9" r="4"><title>Rule baseline: precision@3,000 = 0.475</title></circle><polyline class="line s3" points="56.0,16.0 119.4,16.0 182.9,16.0 246.3,17.0 309.7,61.9 373.1,89.4 436.6,99.2 500.0,121.8"/><circle class="dot s3" cx="56.0" cy="16.0" r="4"><title>Logistic regression: precision@30 = 1.000</title></circle><circle class="dot s3" cx="119.4" cy="16.0" r="4"><title>Logistic regression: precision@50 = 1.000</title></circle><circle class="dot s3" cx="182.9" cy="16.0" r="4"><title>Logistic regression: precision@100 = 1.000</title></circle><circle class="dot s3" cx="246.3" cy="17.0" r="4"><title>Logistic regression: precision@300 = 0.997</title></circle><circle class="dot s3" cx="309.7" cy="61.9" r="4"><title>Logistic regression: precision@500 = 0.860</title></circle><circle class="dot s3" cx="373.1" cy="89.4" r="4"><title>Logistic regression: precision@1,000 = 0.776</title></circle><circle class="dot s3" cx="436.6" cy="99.2" r="4"><title>Logistic regression: precision@2,000 = 0.746</title></circle><circle class="dot s3" cx="500.0" cy="121.8" r="4"><title>Logistic regression: precision@3,000 = 0.677</title></circle><polyline class="line s1" points="56.0,16.0 119.4,16.0 182.9,16.0 246.3,16.0 309.7,16.0 373.1,47.8 436.6,87.4 500.0,107.7"/><circle class="dot s1" cx="56.0" cy="16.0" r="4"><title>Random forest: precision@30 = 1.000</title></circle><circle class="dot s1" cx="119.4" cy="16.0" r="4"><title>Random forest: precision@50 = 1.000</title></circle><circle class="dot s1" cx="182.9" cy="16.0" r="4"><title>Random forest: precision@100 = 1.000</title></circle><circle class="dot s1" cx="246.3" cy="16.0" r="4"><title>Random forest: precision@300 = 1.000</title></circle><circle class="dot s1" cx="309.7" cy="16.0" r="4"><title>Random forest: precision@500 = 1.000</title></circle><circle class="dot s1" cx="373.1" cy="47.8" r="4"><title>Random forest: precision@1,000 = 0.903</title></circle><circle class="dot s1" cx="436.6" cy="87.4" r="4"><title>Random forest: precision@2,000 = 0.782</title></circle><circle class="dot s1" cx="500.0" cy="107.7" r="4"><title>Random forest: precision@3,000 = 0.720</title></circle><text class="lab" x="508" y="191.9">Rule baseline</text><text class="lab" x="508" y="134.8">Logistic regression</text><text class="lab" x="508" y="102.7">Random forest</text></svg></div>
+<figcaption><b>The rule runs out of pages before the models do.</b> At K = 1,000 the baseline sits at 0.463, close to the 0.364 base rate, while the Random Forest holds 0.903 and logistic regression 0.776. The baseline was never fit to this label and the models were, so part of this gap is expected rather than a win for learning. <details><summary>Show the table</summary><div class="tablewrap"><table class=""><thead><tr><th>K</th><th class=num>Rule baseline</th><th class=num>Logistic regression</th><th class=num>Random forest</th></tr></thead><tbody><tr><td>30</td><td class=num>1</td><td class=num>1</td><td class=num>1</td></tr><tr><td>50</td><td class=num>0.98</td><td class=num>1</td><td class=num>1</td></tr><tr><td>100</td><td class=num>0.91</td><td class=num>1</td><td class=num>1</td></tr><tr><td>300</td><td class=num>0.653</td><td class=num>0.997</td><td class=num>1</td></tr><tr><td>500</td><td class=num>0.55</td><td class=num>0.86</td><td class=num>1</td></tr><tr><td>1,000</td><td class=num>0.463</td><td class=num>0.776</td><td class=num>0.903</td></tr><tr><td>2,000</td><td class=num>0.492</td><td class=num>0.746</td><td class=num>0.782</td></tr><tr><td>3,000</td><td class=num>0.475</td><td class=num>0.677</td><td class=num>0.72</td></tr></tbody></table></div></details></figcaption>
+</figure>
+<h3>4.2 The split mattered less than expected</h3>
+<div class="tablewrap"><table class=""><thead><tr><th>Evaluation (same features, same Random Forest, seed 42)</th><th class=num>AUC</th><th class=num>Spread</th><th class=num>Base rate</th></tr></thead><tbody><tr><td>Random 5-fold: rows shuffled, every client on both sides</td><td class=num>0.960</td><td class=num>sd 0.002</td><td class=num>0.423</td></tr><tr><td>One client-grouped 75/25 split (8 test clients), as first reported</td><td class=num>0.910</td><td class=num>n/a</td><td class=num>0.364</td></tr><tr><td>Client-grouped 5-fold, all 32 clients, out-of-fold</td><td class=num>0.946</td><td class=num>sd 0.023; worst fold 0.915</td><td class=num>0.423</td></tr></tbody></table></div>
+<p>Random 5-fold AUC (0.960) is only about 0.014 above client-grouped AUC (0.946), so memorising clients is a small contributor. Across the 21 clients with at least 200 pages, per-client AUC ran from 0.66 to 0.99 with a median of 0.93; ten clients have too few pages to verify at all. The single-split figure of 0.910 sat at the low edge of the grouped range, which shows how much one draw of eight clients can move a result.</p>
+<h3>4.3 What the model was leaning on</h3>
+<p>The four most important features by permutation importance were <code>freshness_tier</code>, <code>position_tier</code>, <code>days_since_last_update</code> and <code>avg_position</code>. All four are direct ingredients of the label definition. Removing them is the test that matters:</p>
+<figure>
+<div class="chart" tabindex="0" role="group" aria-label="Chart, scrollable on small screens"><svg viewBox="0 0 640 250" role="img" aria-label="Out-of-fold AUC as columns are removed" xmlns="http://www.w3.org/2000/svg"><line class="grid" x1="262.0" x2="262.0" y1="14" y2="194"/><text class="tick" x="262.0" y="218" text-anchor="middle">0.5</text><line class="grid" x1="325.6" x2="325.6" y1="14" y2="194"/><text class="tick" x="325.6" y="218" text-anchor="middle">0.6</text><line class="grid" x1="389.2" x2="389.2" y1="14" y2="194"/><text class="tick" x="389.2" y="218" text-anchor="middle">0.7</text><line class="grid" x1="452.8" x2="452.8" y1="14" y2="194"/><text class="tick" x="452.8" y="218" text-anchor="middle">0.8</text><line class="grid" x1="516.4" x2="516.4" y1="14" y2="194"/><text class="tick" x="516.4" y="218" text-anchor="middle">0.9</text><line class="grid" x1="580.0" x2="580.0" y1="14" y2="194"/><text class="tick" x="580.0" y="218" text-anchor="middle">1.0</text><text class="axis" x="421.0" y="244" text-anchor="middle">AUC (0.5 = chance), client-grouped 5-fold, out-of-fold</text><text class="lab" x="252" y="33.0" text-anchor="end">A. All 28 features (as in W5)</text><rect class="bar" x="262" y="14" width="283.7" height="30" rx="3"><title>A. All 28 features (as in W5): AUC 0.946, worst fold 0.915</title></rect><text class="val" x="551.7" y="33.0">0.946</text><text class="lab" x="252" y="81.0" text-anchor="end">B. minus 4 label-ingredient columns</text><rect class="bar" x="262" y="62" width="100.5" height="30" rx="3"><title>B. minus 4 label-ingredient columns: AUC 0.658, worst fold 0.567</title></rect><text class="val" x="368.5" y="81.0">0.658</text><text class="lab" x="252" y="129.0" text-anchor="end">C. B minus 4 volume-proxy columns</text><rect class="bar" x="262" y="110" width="54.7" height="30" rx="3"><title>C. B minus 4 volume-proxy columns: AUC 0.586, worst fold 0.475</title></rect><text class="val" x="322.7" y="129.0">0.586</text><text class="lab" x="252" y="177.0" text-anchor="end">Planted leak: A + trend_pct</text><rect class="bar leak" x="262" y="158" width="316.7" height="30" rx="3"><title>Planted leak: A + trend_pct: AUC 0.998, worst fold 0.994</title></rect><text class="val" x="584.7" y="177.0">0.998</text></svg></div>
+<figcaption><b>Removing four label-ingredient columns cut AUC by about 0.29.</b> The planted leak (grey) pushes AUC to 0.998, so the harness would have caught a true leak. That makes the drop credible: the model&rsquo;s strength is largely re-reading the rule that defines the label. The remaining signal (AUC 0.658, worst fold 0.567) is directional at best, and with volume proxies also removed it falls to 0.586, with one fold below chance. <details><summary>Show the table</summary><div class="tablewrap"><table class=""><thead><tr><th>Model (client-grouped 5-fold, out-of-fold)</th><th class=num>AUC</th><th class=num>Worst fold</th><th class=num>Precision, top 10%</th></tr></thead><tbody><tr><td>A. All 28 features (as in W5)</td><td class=num>0.946</td><td class=num>0.915</td><td class=num>0.967</td></tr><tr><td>B. minus 4 label-ingredient columns</td><td class=num>0.658</td><td class=num>0.567</td><td class=num>0.637</td></tr><tr><td>C. B minus 4 volume-proxy columns</td><td class=num>0.586</td><td class=num>0.475</td><td class=num>0.603</td></tr><tr><td>Planted leak: A + trend_pct</td><td class=num>0.998</td><td class=num>0.994</td><td class=num>1.000</td></tr></tbody></table></div></details></figcaption>
+</figure>
+<p>This is circularity rather than future information: in deployment those four columns would be known at scoring time. The consequence is the same either way. A high AUC here largely reflects agreement with a rule, and should not be read as evidence that a refresh will help.</p>
+<h3>4.4 Where the model without the ingredients is wrong</h3>
+<p>Using the model without the ingredient and volume columns, and setting K to the number of true highs (12,694) so that errors are balanced by construction, precision in the top K is 0.535 against a 0.423 base rate: a modest, directional lift. About 64% of the missed pages are high only through page-one decay, which depends on the decline signal that is banned from the features. Recall is 70.3% for stale-but-visible pages and 32.4% for decline-only pages. This is a structural gap and not a bug to patch: adding the decline columns would push AUC toward 1.0 and mean nothing.</p>
+<h3>4.5 The one check that does not depend on the rule</h3>
+<p>The decline proxy is the only column here not built from the rule, so it gives an independent read on the page types.</p>
+<div class="tablewrap"><table class=""><thead><tr><th>Rule-based page type</th><th class=num>Pages</th><th class=num>Suggested action</th><th class=num>Decline-proxy rate</th></tr></thead><tbody><tr><td>Visible, CTR below its position's benchmark</td><td class=num>8,780</td><td class=num>refresh_and_review_ctr</td><td class=num>0.614</td></tr><tr><td>Stale but visible (90+ days since update)</td><td class=num>3,928</td><td class=num>refresh</td><td class=num>0.527</td></tr><tr><td>Page-1 performer, healthy CTR</td><td class=num>1,961</td><td class=num>protect</td><td class=num>0.465</td></tr><tr><td>Striking distance, healthy CTR</td><td class=num>728</td><td class=num>expand_candidate</td><td class=num>0.532</td></tr><tr><td>Prune-review candidate</td><td class=num>820</td><td class=num>prune_review (human only)</td><td class=num>0.352</td></tr><tr><td>Whole catalogue</td><td class=num>30,000</td><td class=num>n/a</td><td class=num>0.542</td></tr></tbody></table></div>
+<p>Pages flagged for a CTR gap show a decline-proxy rate of 0.614 against 0.542 across the catalogue. Stale-but-visible pages (0.527) do not exceed the catalogue. Rates for page types built from the same columns as the label (for example the 0.997 proxy-high rate among stale-visible pages) hold by construction and are not validation.</p>
+<h3>4.6 Staleness and decline</h3>
+<figure>
+<div class="chart" tabindex="0" role="group" aria-label="Chart, scrollable on small screens"><svg viewBox="0 0 640 300" role="img" aria-label="Decline-proxy rate by days since last update, visible pages" xmlns="http://www.w3.org/2000/svg"><line class="grid" x1="56" x2="616" y1="236.0" y2="236.0"/><text class="tick" x="48" y="240.0" text-anchor="end">0.3</text><line class="grid" x1="56" x2="616" y1="192.0" y2="192.0"/><text class="tick" x="48" y="196.0" text-anchor="end">0.4</text><line class="grid" x1="56" x2="616" y1="148.0" y2="148.0"/><text class="tick" x="48" y="152.0" text-anchor="end">0.5</text><line class="grid" x1="56" x2="616" y1="104.0" y2="104.0"/><text class="tick" x="48" y="108.0" text-anchor="end">0.6</text><line class="grid" x1="56" x2="616" y1="60.0" y2="60.0"/><text class="tick" x="48" y="64.0" text-anchor="end">0.7</text><line class="grid" x1="56" x2="616" y1="16.0" y2="16.0"/><text class="tick" x="48" y="20.0" text-anchor="end">0.8</text><line class="ref" x1="56" x2="616" y1="129.5" y2="129.5"/><text class="lab muted" x="616" y="123.5" text-anchor="end">all 30,000 pages: 0.542</text><line class="whisk" x1="126.0" x2="126.0" y1="137.4" y2="129.5"/><line class="whisk" x1="119.0" x2="133.0" y1="137.4" y2="137.4"/><line class="whisk" x1="119.0" x2="133.0" y1="129.5" y2="129.5"/><circle class="dot s1" cx="126.0" cy="133.5" r="6"><title>0-30 days: 0.533 (95% CI 0.524-0.542), n=11,499</title></circle><text class="val" x="140.0" y="137.5">0.533</text><text class="tick" x="126.0" y="256" text-anchor="middle">0-30 days</text><text class="tick muted" x="126.0" y="272" text-anchor="middle">n = 11,499</text><line class="whisk" x1="266.0" x2="266.0" y1="221.9" y2="137.9"/><line class="whisk" x1="259.0" x2="273.0" y1="221.9" y2="221.9"/><line class="whisk" x1="259.0" x2="273.0" y1="137.9" y2="137.9"/><circle class="dot s1 hollow" cx="266.0" cy="181.4" r="6"><title>31-90 days: 0.424 (95% CI 0.332-0.523), n=99</title></circle><text class="val" x="280.0" y="185.4">0.424</text><text class="tick" x="266.0" y="256" text-anchor="middle">31-90 days</text><text class="tick muted" x="266.0" y="272" text-anchor="middle">n = 99 (too thin)</text><line class="whisk" x1="406.0" x2="406.0" y1="117.6" y2="107.5"/><line class="whisk" x1="399.0" x2="413.0" y1="117.6" y2="117.6"/><line class="whisk" x1="399.0" x2="413.0" y1="107.5" y2="107.5"/><circle class="dot s1" cx="406.0" cy="112.8" r="6"><title>91-180 days: 0.580 (95% CI 0.569-0.592), n=7,047</title></circle><text class="val" x="420.0" y="116.8">0.580</text><text class="tick" x="406.0" y="256" text-anchor="middle">91-180 days</text><text class="tick muted" x="406.0" y="272" text-anchor="middle">n = 7,047</text><line class="whisk" x1="546.0" x2="546.0" y1="166.5" y2="19.1"/><line class="whisk" x1="539.0" x2="553.0" y1="166.5" y2="166.5"/><line class="whisk" x1="539.0" x2="553.0" y1="19.1" y2="19.1"/><circle class="dot s1 hollow" cx="546.0" cy="85.1" r="6"><title>181+ days: 0.643 (95% CI 0.458-0.793), n=28</title></circle><text class="val" x="560.0" y="89.1">0.643</text><text class="tick" x="546.0" y="256" text-anchor="middle">181+ days</text><text class="tick muted" x="546.0" y="272" text-anchor="middle">n = 28 (too thin)</text><text class="axis" transform="translate(14 126.0) rotate(-90)" text-anchor="middle">share of pages in the decline proxy</text></svg></div>
+<figcaption><b>Visible pages last updated 91&ndash;180 days ago decline somewhat more (0.580 against 0.533), but this is not a dose-response.</b> The freshest pages (0&ndash;14 days) also run high, which is what you would see if pages are often updated because they are already falling. The 31&ndash;90 and 181+ day buckets are too thin to read (hollow markers). Whiskers are 95% Wilson intervals. Update dates are clustered: two values cover 68% of pages, and 8,773 pages share exactly 104 days, mostly from three clients, so &ldquo;stale&rdquo; often means &ldquo;a client&rsquo;s last bulk update&rdquo;.</figcaption>
+</figure>
+<h3>4.7 What the queue looks like</h3>
+<figure>
+<div class="chart" tabindex="0" role="group" aria-label="Chart, scrollable on small screens"><svg viewBox="0 0 640 230" role="img" aria-label="Suggested action counts across 30,000 pages" xmlns="http://www.w3.org/2000/svg"><text class="lab" x="180" y="27.0" text-anchor="end">monitor</text><rect class="bar quiet" x="190" y="10" width="380.0" height="26" rx="3"><title>monitor: 13,783 pages</title></rect><text class="val" x="576.0" y="27.0">13,783</text><text class="lab" x="180" y="65.0" text-anchor="end">refresh_and_review_ctr</text><rect class="bar" x="190" y="48" width="242.1" height="26" rx="3"><title>refresh_and_review_ctr: 8,780 pages</title></rect><text class="val" x="438.1" y="65.0">8,780</text><text class="lab" x="180" y="103.0" text-anchor="end">refresh</text><rect class="bar" x="190" y="86" width="108.3" height="26" rx="3"><title>refresh: 3,928 pages</title></rect><text class="val" x="304.3" y="103.0">3,928</text><text class="lab" x="180" y="141.0" text-anchor="end">protect</text><rect class="bar quiet" x="190" y="124" width="54.1" height="26" rx="3"><title>protect: 1,961 pages</title></rect><text class="val" x="250.1" y="141.0">1,961</text><text class="lab" x="180" y="179.0" text-anchor="end">prune_review</text><rect class="bar quiet" x="190" y="162" width="22.6" height="26" rx="3"><title>prune_review: 820 pages</title></rect><text class="val" x="218.6" y="179.0">820</text><text class="lab" x="180" y="217.0" text-anchor="end">expand_candidate</text><rect class="bar quiet" x="190" y="200" width="20.1" height="26" rx="3"><title>expand_candidate: 728 pages</title></rect><text class="val" x="216.1" y="217.0">728</text></svg></div>
+<figcaption><b>42% of the catalogue (12,708 pages) lands in the ranked queue; the rest gets an action label but no rank.</b> The queue covers the two refresh actions. Protect, expand and prune-review are hypotheses for a human to consider, and prune-review is never automated.</figcaption>
+</figure>
+<figure>
+<div class="chart" tabindex="0" role="group" aria-label="Chart, scrollable on small screens"><svg viewBox="0 0 640 300" role="img" aria-label="Share of recoverable-clicks ceiling by pages reviewed" xmlns="http://www.w3.org/2000/svg"><line class="grid" x1="56" x2="500" y1="248.0" y2="248.0"/><text class="tick" x="48" y="252.0" text-anchor="end">0%</text><line class="grid" x1="56" x2="500" y1="190.0" y2="190.0"/><text class="tick" x="48" y="194.0" text-anchor="end">25%</text><line class="grid" x1="56" x2="500" y1="132.0" y2="132.0"/><text class="tick" x="48" y="136.0" text-anchor="end">50%</text><line class="grid" x1="56" x2="500" y1="74.0" y2="74.0"/><text class="tick" x="48" y="78.0" text-anchor="end">75%</text><line class="grid" x1="56" x2="500" y1="16.0" y2="16.0"/><text class="tick" x="48" y="20.0" text-anchor="end">100%</text><text class="tick" x="92.5" y="268" text-anchor="middle">50</text><text class="tick" x="207.5" y="268" text-anchor="middle">250</text><text class="tick" x="306.5" y="268" text-anchor="middle">1,000</text><text class="tick" x="488.2" y="268" text-anchor="middle">12,708</text><text class="axis" x="278.0" y="292" text-anchor="middle">pages reviewed, in queue order (log scale)</text><text class="axis" transform="translate(14 132.0) rotate(-90)" text-anchor="middle">share of total ceiling</text><polyline class="line s3 dash" points="92.5,214.4 207.5,169.4 306.5,107.9 488.2,16.0"/><circle class="dot s3" cx="92.5" cy="214.4" r="4"><title>Best case (sorted by click gap): first 50 pages hold 14.5% of the ceiling</title></circle><circle class="dot s3" cx="207.5" cy="169.4" r="4"><title>Best case (sorted by click gap): first 250 pages hold 33.9% of the ceiling</title></circle><circle class="dot s3" cx="306.5" cy="107.9" r="4"><title>Best case (sorted by click gap): first 1,000 pages hold 60.4% of the ceiling</title></circle><circle class="dot s3" cx="488.2" cy="16.0" r="4"><title>Best case (sorted by click gap): first 12,708 pages hold 100.0% of the ceiling</title></circle><text class="lab" x="508" y="12.0">Best case</text><polyline class="line s1" points="92.5,219.5 207.5,180.3 306.5,120.9 488.2,16.0"/><circle class="dot s1" cx="92.5" cy="219.5" r="4"><title>Queue order: first 50 pages hold 12.3% of the ceiling</title></circle><circle class="dot s1" cx="207.5" cy="180.3" r="4"><title>Queue order: first 250 pages hold 29.2% of the ceiling</title></circle><circle class="dot s1" cx="306.5" cy="120.9" r="4"><title>Queue order: first 1,000 pages hold 54.8% of the ceiling</title></circle><circle class="dot s1" cx="488.2" cy="16.0" r="4"><title>Queue order: first 12,708 pages hold 100.0% of the ceiling</title></circle><text class="lab" x="508" y="32.0">Queue order</text></svg></div>
+<figcaption><b>Value is concentrated at the top, so small frequent batches beat one big sweep.</b> The ceiling is the clicks a page would gain if it matched the typical CTR for its position: an upper bound, not a forecast. The first 250 pages hold 29% of it (best case 34%), and the first 1,000 hold 55%. The gap between the lines is the price of merging two lanes, since stale-only pages are ordered by visibility rather than by a click gap.</figcaption>
+</figure>
+
+<h2 id="limits">5. Limitations and honest framing</h2>
+<p>What this work cannot claim is as important as what it shows. Each limit below is measured or stated in the notebooks.</p>
+<ul>
+<li><b>The target is a proxy.</b> No editor-confirmed outcome exists. Scores measure agreement with a rule.</li>
+<li><b>The strongest features are ingredients of the proxy.</b> Read the 0.946 beside the 0.658. The model is a second opinion, not the basis of the ranking.</li>
+<li><b>One snapshot, no time split.</b> Nothing here says how the ranking behaves on next month&rsquo;s pages. The warehouse supports a past-to-future design with a sealed final month; that is the study worth running next.</li>
+<li><b>No causal claim about refreshing.</b> The data compares different pages at one moment, not the same pages before and after. Who gets refreshed is also a choice someone made, so part of any gap is the choosing. We cannot say that a refresh reverses decline or how many days a page can wait.</li>
+<li><b>Population filter.</b> Every page had at least one impression in 90 days, and 38% have fewer than 50 in the last 30. Low-visibility pages are out of scope for a refresh action, which does not mean they are fine.</li>
+<li><b>The queue is dominated by large clients.</b> The largest single client holds 50% of the global top 50 and 52% of the top 250.</li>
+<li><b>Uneven client coverage.</b> Ten of 32 clients have under 200 pages, so the model cannot be verified there; two verified clients fall below 0.80 AUC.</li>
+<li><b>The CTR benchmark is crude.</b> It is the weighted CTR by position tier within this slice, and the top-3 tier is small.</li>
+<li><b>Effort and cost figures are assumptions,</b> not measurements, and are not reported as results.</li>
+</ul>
+<p>We are not claiming to have predicted any search engine&rsquo;s behaviour. The claim is narrower: in this portfolio, these observable signals produce a ranking that agrees with a defined proxy, and part of that agreement is circular.</p>
+
+<h2 id="recs">6. Ranked recommendations</h2>
+<p>These are decision-support for human review, ordered by how well the evidence supports them.</p>
+<ol class="rec">
+<li><b>Work the CTR-gap lane first.</b>It holds 8,780 pages and is the only reason code where the independent decline proxy sits above the catalogue (0.614 against 0.542). Before editing a title, check the results page: an answer box or AI overview can absorb clicks no rewrite will recover.</li>
+<li><b>Review in small, frequent batches.</b>Take the first 50 pages as tier one and the next 200 as tier two. The first 250 hold 29% of the recoverable-clicks ceiling, and returns fall steeply after that.</li>
+<li><b>Treat &ldquo;stale but visible&rdquo; as a question, not a verdict.</b>Ask whether the last update was a bulk or template change rather than an editor reading the page, and whether the information is actually out of date. The staleness signal was mixed in every test.</li>
+<li><b>Work the queue per client.</b>Each client&rsquo;s team should use its own client-level rank, or a client-balanced view for a mixed sitting, because the global top is dominated by the largest clients.</li>
+<li><b>Use the model only as a second opinion.</b>Let reason codes carry the explanation. Where the model disagrees with the rule (26% of the queue) or the client is weak or unverified, judge the page on its reason code, and ignore the model on the ten under-covered clients.</li>
+<li><b>Fix the data before the page.</b>For the 1,205 pages with no position, pull it from Search Console first. Require a second reviewer for any page with 50,000 or more impressions in 30 days, since very high-volume rows can be tracking glitches, and for every prune-review page.</li>
+<li><b>Build the feedback loop that makes the next study possible.</b>Log each accept, reject or defer with a one-line reason, and hold about 10% of tier one and two back as an untouched comparison group. Without it, whether actioned pages improve cannot be measured.</li>
+</ol>
+<p><b>Never automate or claim:</b> auto-publishing or rewriting content from the queue; auto-pruning, deleting or redirecting pages; promising clients a traffic uplift; presenting a score as a probability of success; adding the decline columns as features to &ldquo;fix&rdquo; the blind spot; or retraining on the same proxy and reporting a higher AUC as progress. Monitoring should watch editor acceptance, input drift on CTR and position, the share of missing positions, and any shift of more than ten points in the action mix; the thresholds are proposals for FlyRank to agree, not findings.</p>
+
+<h2 id="repro">7. Reproducibility</h2>
+<p>All code is in the <a href="https://github.com/RamyaMuthumariappan/FlyRankAI">project repository</a>. Each section of this paper traces to a notebook:</p>
+<div class="tablewrap"><table class=""><thead><tr><th>Notebook</th><th class=num>What it holds</th></tr></thead><tbody><tr><td><a href="https://github.com/RamyaMuthumariappan/FlyRankAI/blob/main/work/notebooks/w01_research_question.ipynb">w01_research_question.ipynb</a></td><td class=num>Question, decision, claim boundaries</td></tr><tr><td><a href="https://github.com/RamyaMuthumariappan/FlyRankAI/blob/main/work/notebooks/w02_ml_task_framing.ipynb">w02_ml_task_framing.ipynb</a></td><td class=num>Ranking task, proxy label, precision@K</td></tr><tr><td><a href="https://github.com/RamyaMuthumariappan/FlyRankAI/blob/main/work/notebooks/w03_data_contract.ipynb">w03_data_contract.ipynb</a></td><td class=num>Warehouse partition, grain checks, leakage trap</td></tr><tr><td><a href="https://github.com/RamyaMuthumariappan/FlyRankAI/blob/main/work/notebooks/w04_baseline_score.ipynb">w04_baseline_score.ipynb</a></td><td class=num>Signal checks, rule baseline, reason codes</td></tr><tr><td><a href="https://github.com/RamyaMuthumariappan/FlyRankAI/blob/main/work/notebooks/w05_model.ipynb">w05_model.ipynb</a></td><td class=num>Grouped split, model vs baseline, importance</td></tr><tr><td><a href="https://github.com/RamyaMuthumariappan/FlyRankAI/blob/main/work/notebooks/w06_validation_audit.ipynb">w06_validation_audit.ipynb</a></td><td class=num>Random vs grouped, ablation, planted leak, claim rewrite</td></tr><tr><td><a href="https://github.com/RamyaMuthumariappan/FlyRankAI/blob/main/work/notebooks/w07_action_playbook.ipynb">w07_action_playbook.ipynb</a></td><td class=num>Page types, ranked queue, human review, monitoring</td></tr><tr><td><a href="https://github.com/RamyaMuthumariappan/FlyRankAI/blob/main/work/notebooks/capstone.ipynb">capstone.ipynb</a></td><td class=num>The whole study in one notebook, mirroring this paper</td></tr></tbody></table></div>
+<ul>
+<li><b>Seeds and versions.</b> Seed 42 throughout (splits, logistic regression, Random Forest); scikit-learn 1.6.1 on Colab. Fold assignment can differ slightly across versions, so re-run numbers may move by about 0.01.</li>
+<li><b>Data.</b> The 30,000-row snapshot ships with the internship starter repository; the warehouse release is gated and queried in place with DuckDB. No dataset is committed, by design.</li>
+<li><b>Re-run.</b> Open the notebooks in order from a fresh clone and run top to bottom. Metrics files named in the notebooks are written to <code>work/outputs/</code> when they run.</li>
+<li><b>This page.</b> Every figure value is copied from a printed notebook output and rendered by <code>work/scripts/build_paper.py</code>, which needs no data files.</li>
+</ul>
+<pre><code>python work/scripts/build_paper.py   # rebuilds docs/index.html</code></pre>
+
+<h2 id="credit">8. Acknowledgments and data credit</h2>
+<p>Built on the <a href="https://flyrank.ai">FlyRank ML Internship dataset</a>. Thanks to the FlyRank team for the data and the starter materials behind this work. The page follows common practice for research write-ups: a complete abstract first, one message per figure with the takeaway written beneath it, and limitations stated before a reader has to ask.</p>
+<footer>All figures are aggregates from an anonymized snapshot. No client names, URLs, page titles, queries or row-level data are published here. Claims use the language of observed, measured, directional and decision-support.</footer>
+</main>
+</div>
+</body>
+</html>
